@@ -56,9 +56,9 @@
   .menuCard:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
   .menuCard .big { font-size: 64px; line-height: 1; }
   .menuCard:nth-child(1) { background: linear-gradient(160deg,#ff9ec3,#ff6fa5); animation-delay: 0s; }
-  .menuCard:nth-child(2) { background: linear-gradient(160deg,#8ed6ff,#4fb3f6); animation-delay: .4s; }
-  .menuCard:nth-child(3) { background: linear-gradient(160deg,#ffd36e,#ffb347); animation-delay: .8s; }
-  .menuCard:nth-child(4) { background: linear-gradient(160deg,#9fe6a0,#5fcf80); animation-delay: 1.2s; }
+  .menuCard:nth-child(2) { background: linear-gradient(160deg,#ffd36e,#ffb347); animation-delay: .4s; }
+  .menuCard:nth-child(3) { background: linear-gradient(160deg,#9fe6a0,#5fcf80); animation-delay: .8s; }
+  .menuCard:last-child:nth-child(odd) { grid-column: span 2; }
   @keyframes floaty { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
   #mascot { font-size: 56px; margin-bottom: 14px; animation: floaty 2.5s ease-in-out infinite; }
 
@@ -151,7 +151,6 @@
     <div id="mascot">🐻</div>
     <div id="menuGrid">
       <button class="menuCard" onclick="openLetters()"><span class="big">🅰️</span>Letters</button>
-      <button class="menuCard" onclick="openPhonics()"><span class="big">🗣️</span>Sounds</button>
       <button class="menuCard" onclick="openNumbers()"><span class="big">🔢</span>Numbers</button>
       <button class="menuCard" onclick="openMath()"><span class="big">🧮</span>Math</button>
     </div>
@@ -175,31 +174,14 @@
     </div>
   </div>
 
-  <!-- LETTER / SOUND QUIZ -->
+  <!-- LETTER QUIZ -->
   <div class="screen" id="scr-letterquiz">
-    <div class="problemRow" id="lqPrompt" onclick="speak(lqPromptText)" style="cursor:pointer">🔊 Find the letter!</div>
+    <div class="problemRow" onclick="speak(lqPromptText)" style="cursor:pointer">🔊 Find the letter!</div>
     <div class="answerRow" id="lqAnswers"></div>
     <div class="navRow">
       <button class="navBtn small" onclick="speak(lqPromptText)">🔁 Hear again</button>
       <button class="navBtn small" id="lqCaseBtn" onclick="toggleLetterCase()">🔠 ABC</button>
-      <button class="navBtn small" onclick="letterQuiz(lqMode)">➡️ New one</button>
-    </div>
-  </div>
-
-  <!-- PHONICS -->
-  <div class="screen" id="scr-phonics">
-    <div class="flashWrap">
-      <div class="bigCard" onclick="sayPhonics()">
-        <div class="bigGlyph" id="phGlyph">B b</div>
-        <div class="bigEmoji" id="phEmoji">🐝</div>
-        <div class="bigWord" id="phWord">buh… Bee!</div>
-        <div class="hintTxt">👆 Tap to hear the sound!</div>
-      </div>
-      <div class="navRow">
-        <button class="navBtn" onclick="stepPhonics(-1)">⬅️</button>
-        <button class="navBtn small" onclick="letterQuiz('sound')">🎯 Play!</button>
-        <button class="navBtn" onclick="stepPhonics(1)">➡️</button>
-      </div>
+      <button class="navBtn small" onclick="letterQuiz()">➡️ New one</button>
     </div>
   </div>
 
@@ -262,18 +244,16 @@
 'use strict';
 
 /* ================= data ================= */
-/* Phonics strings are chosen for how iOS text-to-speech reads them aloud,
-   not how they're spelled (e.g. bare "a" is read as the letter name "ay"). */
 const LETTERS = [
-  ['A','🍎','Apple','ah'],   ['B','🐝','Bee','buh'],   ['C','🐱','Cat','kuh'],
-  ['D','🐶','Dog','duh'],    ['E','🐘','Elephant','eh'],['F','🐸','Frog','fuh'],
-  ['G','🍇','Grapes','guh'], ['H','🐴','Horse','huh'], ['I','🍦','Ice cream','ih'],
-  ['J','🧃','Juice','juh'],  ['K','🪁','Kite','kuh'],  ['L','🦁','Lion','luh'],
-  ['M','🌙','Moon','muh'],   ['N','🥜','Nut','nuh'],   ['O','🐙','Octopus','aw'],
-  ['P','🐷','Pig','puh'],    ['Q','👑','Queen','kwuh'],['R','🌈','Rainbow','ruh'],
-  ['S','☀️','Sun','suh'],    ['T','🐯','Tiger','tuh'], ['U','☂️','Umbrella','uh'],
-  ['V','🎻','Violin','vuh'], ['W','🐳','Whale','wuh'], ['X','🩻','X-ray','kuss'],
-  ['Y','🪀','Yo-yo','yuh'],  ['Z','🦓','Zebra','zuh'],
+  ['A','🍎','Apple'],   ['B','🐝','Bee'],     ['C','🐱','Cat'],
+  ['D','🐶','Dog'],     ['E','🐘','Elephant'],['F','🐸','Frog'],
+  ['G','🍇','Grapes'],  ['H','🐴','Horse'],   ['I','🍦','Ice cream'],
+  ['J','🧃','Juice'],   ['K','🪁','Kite'],    ['L','🦁','Lion'],
+  ['M','🌙','Moon'],    ['N','🥜','Nut'],     ['O','🐙','Octopus'],
+  ['P','🐷','Pig'],     ['Q','👑','Queen'],   ['R','🌈','Rainbow'],
+  ['S','☀️','Sun'],     ['T','🐯','Tiger'],   ['U','☂️','Umbrella'],
+  ['V','🎻','Violin'],  ['W','🐳','Whale'],   ['X','🩻','X-ray'],
+  ['Y','🪀','Yo-yo'],   ['Z','🦓','Zebra'],
 ];
 const NUMBER_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
   'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
@@ -414,8 +394,8 @@ function sayLetterWord(e) {
 }
 function stepLetter(d) { li = (li + d + 26) % 26; renderLetter(); sayLetter(); }
 
-/* ----- quiz: find the letter (by name, or by phonics sound) ----- */
-let lqMode = 'name', lqPromptText = '';
+/* ----- quiz: find the letter ----- */
+let lqPromptText = '';
 /* answer buttons show upper or lower case letters — the Aa button toggles it */
 let lqCase = 'upper';
 try { if (localStorage.getItem('lqCase') === 'lower') lqCase = 'lower'; } catch (e) {}
@@ -423,48 +403,22 @@ function lqGlyph(L) { return lqCase === 'lower' ? L.toLowerCase() : L; }
 function toggleLetterCase() {
   lqCase = lqCase === 'lower' ? 'upper' : 'lower';
   try { localStorage.setItem('lqCase', lqCase); } catch (e) {}
-  letterQuiz(lqMode);
+  letterQuiz();
 }
-function letterQuiz(mode) {
-  lqMode = mode === 'sound' ? 'sound' : 'name';
-  show('scr-letterquiz', lqMode === 'sound' ? 'Who says it? 🎯' : 'Find it! 🎯');
+function letterQuiz() {
+  show('scr-letterquiz', 'Find it! 🎯');
   document.getElementById('lqCaseBtn').textContent = lqCase === 'lower' ? '🔡 abc' : '🔠 ABC';
-  const [target, , word, sound] = LETTERS[Math.floor(Math.random() * 26)];
+  const target = LETTERS[Math.floor(Math.random() * 26)][0];
   const opts = new Set([target]);
   while (opts.size < 3) opts.add(LETTERS[Math.floor(Math.random() * 26)][0]);
   /* the on-screen prompt must never show the answer — she'd just shape-match.
      The target only lives in the spoken audio; tap the prompt to hear it again. */
-  if (lqMode === 'sound') {
-    lqPromptText = 'Which letter says ' + sound + '? ' + sound + ', like ' + word + '!';
-    document.getElementById('lqPrompt').textContent = '🔊 Who says it?';
-  } else {
-    lqPromptText = 'Can you find the letter ' + target + '?';
-    document.getElementById('lqPrompt').textContent = '🔊 Find the letter!';
-  }
+  lqPromptText = 'Can you find the letter ' + target + '?';
   buildAnswers('lqAnswers', shuffle([...opts]).map(lqGlyph), lqGlyph(target),
-    lqMode === 'sound' ? target + ' says ' + sound + '!' : target.toLowerCase() + '!',
-    () => later('scr-letterquiz', () => letterQuiz(lqMode), 2200));
+    target.toLowerCase() + '!',
+    () => later('scr-letterquiz', letterQuiz, 2200));
   speak(lqPromptText);
 }
-
-/* ================= PHONICS ================= */
-let pi = 0;
-function openPhonics() { show('scr-phonics', 'Letter Sounds 🗣️'); renderPhonics(); sayPhonics(); }
-function renderPhonics() {
-  const [L, emoji, word, sound] = LETTERS[pi];
-  const g = document.getElementById('phGlyph');
-  g.textContent = L + ' ' + L.toLowerCase();
-  g.className = 'bigGlyph c' + (pi % 6);
-  document.getElementById('phEmoji').textContent = emoji;
-  document.getElementById('phWord').textContent = sound + '… ' + word + '!';
-}
-function sayPhonics() {
-  const [L, , word, sound] = LETTERS[pi];
-  /* "The letter A says, ah." — the lead-in words and period pauses keep the
-     short sound from blurring into the letter name */
-  speak('The letter ' + L + ' says, ' + sound + '. ' + sound + '. ' + word + '!', 0.6);
-}
-function stepPhonics(d) { pi = (pi + d + 26) % 26; renderPhonics(); sayPhonics(); }
 
 /* ================= NUMBERS ================= */
 /* tappable counting objects, five per row so quantities read like a counting frame */
