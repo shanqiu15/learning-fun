@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7a5fb5">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>ABC &amp; 123 Fun!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, "Comic Sans MS", "Chalkboard SE", "Marker Felt", sans-serif;
+    background: linear-gradient(160deg, #fef6ff 0%, #e8f7ff 50%, #fffbe6 100%);
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- top bar ---------- */
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(10px, env(safe-area-inset-top)) 16px 6px 16px;
+    min-height: 58px;
+  }
+  #homeBtn {
+    font-size: 30px; background: #fff; border: 3px solid #ffd6e7; border-radius: 20px;
+    padding: 6px 18px; box-shadow: 0 4px 0 #ffc2dc; cursor: pointer; visibility: hidden;
+  }
+  #homeBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #ffc2dc; }
+  #titleTxt { font-size: 26px; font-weight: 800; color: #7a5fb5; text-align: center; flex: 1; }
+  #stars { font-size: 24px; min-width: 90px; text-align: right; color: #f5a623; font-weight: 800; }
+
+  #stage { flex: 1; position: relative; overflow: hidden; }
+  .screen {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+  }
+  .screen.active { display: flex; }
+
+  /* ---------- home menu ---------- */
+  #menuGrid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+    width: min(92vw, 700px);
+  }
+  .menuCard {
+    border: none; border-radius: 32px; padding: 26px 10px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-family: inherit; color: #fff; font-weight: 800; font-size: 28px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.15);
+    animation: floaty 3s ease-in-out infinite;
+  }
+  .menuCard:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+  .menuCard .big { font-size: 64px; line-height: 1; }
+  .menuCard:nth-child(1) { background: linear-gradient(160deg,#ff9ec3,#ff6fa5); animation-delay: 0s; }
+  .menuCard:nth-child(2) { background: linear-gradient(160deg,#8ed6ff,#4fb3f6); animation-delay: .4s; }
+  .menuCard:nth-child(3) { background: linear-gradient(160deg,#ffd36e,#ffb347); animation-delay: .8s; }
+  .menuCard:nth-child(4) { background: linear-gradient(160deg,#9fe6a0,#5fcf80); animation-delay: 1.2s; }
+  @keyframes floaty { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+  #mascot { font-size: 56px; margin-bottom: 14px; animation: floaty 2.5s ease-in-out infinite; }
+
+  /* ---------- big flash card ---------- */
+  .flashWrap { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; height: 100%; justify-content: center; }
+  .bigCard {
+    background: #fff; border-radius: 40px; box-shadow: 0 10px 30px rgba(122,95,181,.18);
+    width: min(88vw, 560px); flex: 0 1 auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px 16px; cursor: pointer; gap: 4px;
+  }
+  .bigCard:active { transform: scale(.97); }
+  .bigGlyph { font-size: min(30vh, 170px); font-weight: 800; line-height: 1.05; }
+  .bigEmoji { font-size: min(14vh, 84px); line-height: 1.2; }
+  .bigWord { font-size: 34px; font-weight: 800; color: #7a5fb5; }
+  .hintTxt { font-size: 18px; color: #b9a8dd; margin-top: 8px; }
+  #scr-numbers .bigGlyph { font-size: min(18vh, 120px); }
+
+  .navRow { display: flex; gap: 16px; align-items: center; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .navBtn {
+    font-size: 34px; font-family: inherit; background: #fff; border: none; border-radius: 26px;
+    padding: 12px 30px; box-shadow: 0 6px 0 #d8ccf0; cursor: pointer; color: #7a5fb5; font-weight: 800;
+  }
+  .navBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d8ccf0; }
+  .navBtn.small { font-size: 22px; padding: 10px 22px; }
+
+  /* letter rainbow colors */
+  .c0 { color: #ff6fa5; } .c1 { color: #ff9944; } .c2 { color: #f5b800; }
+  .c3 { color: #4bc46d; } .c4 { color: #38a8e8; } .c5 { color: #9b6fe8; }
+
+  /* ---------- counting dots (grouped five per row, like a counting frame) ---------- */
+  #countObjs {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    min-height: 60px; justify-content: center;
+  }
+  #nqObjs { flex-direction: column; gap: 8px; }
+  .cRow { display: flex; gap: 8px; justify-content: center; }
+  .cobj { font-size: min(6vh, 44px); cursor: pointer; transition: transform .15s; }
+  .cobj.counted { transform: scale(1.25) rotate(-8deg); filter: drop-shadow(0 0 6px gold); }
+
+  /* ---------- quiz / math ---------- */
+  .problemRow { font-size: min(9vh, 58px); font-weight: 800; color: #5a4a8a; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .objGroup { background: #fff; border-radius: 24px; padding: 10px 14px; box-shadow: 0 6px 16px rgba(122,95,181,.12); font-size: min(7vh,44px); max-width: 40vw; }
+  .answerRow { display: flex; gap: 22px; margin-top: 26px; }
+  .ansBtn {
+    font-family: inherit; font-size: 52px; font-weight: 800; color: #fff;
+    border: none; border-radius: 28px; width: 110px; height: 110px; cursor: pointer;
+    box-shadow: 0 7px 0 rgba(0,0,0,.18);
+  }
+  .ansBtn:active { transform: translateY(5px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .ansBtn.a0 { background: #ff6fa5; } .ansBtn.a1 { background: #4fb3f6; } .ansBtn.a2 { background: #ffb347; }
+  .ansBtn.wrong { animation: shake .4s; opacity: .35; }
+  .ansBtn.right { animation: pop .5s; background: #4bc46d !important; }
+  @keyframes shake { 0%,100%{translate:0} 25%{translate:-10px 0} 75%{translate:10px 0} }
+  @keyframes pop { 50% { transform: scale(1.3); } }
+
+  /* ---------- tracing ---------- */
+  #traceCanvas {
+    background: #fff; border-radius: 32px; touch-action: none; cursor: crosshair;
+    box-shadow: 0 10px 30px rgba(122,95,181,.18);
+  }
+
+  /* ---------- celebration ---------- */
+  #confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  .confPiece { position: absolute; font-size: 34px; animation: fall linear forwards; }
+  @keyframes fall {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: .6; }
+  }
+  #cheerBubble {
+    position: absolute; left: 50%; top: 38%; translate: -50% -50%; z-index: 60;
+    font-size: min(54px, 8vw); font-weight: 800; color: #ff6fa5; background: #fff;
+    padding: 20px 44px; border-radius: 40px; box-shadow: 0 12px 40px rgba(0,0,0,.15);
+    display: none; animation: pop .5s; pointer-events: none; white-space: nowrap; max-width: 94vw;
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <button id="homeBtn" onclick="goHome()">🏠</button>
+  <div id="titleTxt">ABC &amp; 123 Fun!</div>
+  <div id="stars">⭐ <span id="starCount">0</span></div>
+</div>
+
+<div id="stage">
+
+  <!-- HOME -->
+  <div class="screen active" id="scr-home">
+    <div id="mascot">🐻</div>
+    <div id="menuGrid">
+      <button class="menuCard" onclick="openLetters()"><span class="big">🅰️</span>Letters</button>
+      <button class="menuCard" onclick="openPhonics()"><span class="big">🗣️</span>Sounds</button>
+      <button class="menuCard" onclick="openNumbers()"><span class="big">🔢</span>Numbers</button>
+      <button class="menuCard" onclick="openMath()"><span class="big">🧮</span>Math</button>
+    </div>
+  </div>
+
+  <!-- LETTERS -->
+  <div class="screen" id="scr-letters">
+    <div class="flashWrap">
+      <div class="bigCard" onclick="sayLetter()">
+        <div class="bigGlyph" id="letterGlyph">A</div>
+        <div class="bigEmoji" id="letterEmoji" onclick="sayLetterWord(event)">🍎</div>
+        <div class="bigWord" id="letterWord" onclick="sayLetterWord(event)">Apple</div>
+        <div class="hintTxt">👆 Tap the letter or the picture!</div>
+      </div>
+      <div class="navRow">
+        <button class="navBtn" onclick="stepLetter(-1)">⬅️</button>
+        <button class="navBtn small" onclick="openTrace('letter')">✏️ Trace</button>
+        <button class="navBtn small" onclick="letterQuiz()">🎯 Play!</button>
+        <button class="navBtn" onclick="stepLetter(1)">➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LETTER / SOUND QUIZ -->
+  <div class="screen" id="scr-letterquiz">
+    <div class="problemRow" id="lqPrompt" onclick="speak(lqPromptText)" style="cursor:pointer">🔊 Find the letter!</div>
+    <div class="answerRow" id="lqAnswers"></div>
+    <div class="navRow">
+      <button class="navBtn small" onclick="speak(lqPromptText)">🔁 Hear again</button>
+      <button class="navBtn small" id="lqCaseBtn" onclick="toggleLetterCase()">🔠 ABC</button>
+      <button class="navBtn small" onclick="letterQuiz(lqMode)">➡️ New one</button>
+    </div>
+  </div>
+
+  <!-- PHONICS -->
+  <div class="screen" id="scr-phonics">
+    <div class="flashWrap">
+      <div class="bigCard" onclick="sayPhonics()">
+        <div class="bigGlyph" id="phGlyph">B b</div>
+        <div class="bigEmoji" id="phEmoji">🐝</div>
+        <div class="bigWord" id="phWord">buh… Bee!</div>
+        <div class="hintTxt">👆 Tap to hear the sound!</div>
+      </div>
+      <div class="navRow">
+        <button class="navBtn" onclick="stepPhonics(-1)">⬅️</button>
+        <button class="navBtn small" onclick="letterQuiz('sound')">🎯 Play!</button>
+        <button class="navBtn" onclick="stepPhonics(1)">➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUMBERS -->
+  <div class="screen" id="scr-numbers">
+    <div class="flashWrap">
+      <div class="bigCard" onclick="sayNumber()">
+        <div class="bigGlyph" id="numGlyph">5</div>
+        <div id="countObjs"></div>
+        <div class="bigWord" id="numWord">five</div>
+        <div class="hintTxt" id="numHint">👆 Tap each one to count!</div>
+      </div>
+      <div class="navRow">
+        <button class="navBtn" onclick="stepNumber(-1)">⬅️</button>
+        <button class="navBtn small" onclick="openTrace('number')">✏️ Trace</button>
+        <button class="navBtn small" onclick="numberQuiz()">🎯 Play!</button>
+        <button class="navBtn" onclick="stepNumber(1)">➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUMBER QUIZ -->
+  <div class="screen" id="scr-numberquiz">
+    <div class="problemRow" id="nqObjs"></div>
+    <div class="problemRow" style="font-size:34px;color:#9b8ac4;margin-top:10px">How many?</div>
+    <div class="answerRow" id="nqAnswers"></div>
+    <div class="navRow">
+      <button class="navBtn small" onclick="speak(NQ_PROMPT)">🔁 Hear again</button>
+      <button class="navBtn small" onclick="numberQuiz()">➡️ New one</button>
+    </div>
+  </div>
+
+  <!-- MATH -->
+  <div class="screen" id="scr-math">
+    <div class="problemRow" id="mathProblem"></div>
+    <div class="answerRow" id="mathAnswers"></div>
+    <div class="navRow">
+      <button class="navBtn small" onclick="speak(mathSpoken)">🔁 Hear again</button>
+      <button class="navBtn small" onclick="mathProblem()">➡️ New one</button>
+    </div>
+  </div>
+
+  <!-- TRACING -->
+  <div class="screen" id="scr-trace">
+    <canvas id="traceCanvas"></canvas>
+    <div class="hintTxt">👆 Color it all in with your finger!</div>
+    <div class="navRow">
+      <button class="navBtn" onclick="stepTrace(-1)">⬅️</button>
+      <button class="navBtn small" onclick="clearTrace()">🧽 Wipe</button>
+      <button class="navBtn small" onclick="sayTraceGlyph()">🔊 Hear</button>
+      <button class="navBtn" onclick="stepTrace(1)">➡️</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="cheerBubble">🎉 Yay!</div>
+</div>
+
+<script>
+'use strict';
+
+/* ================= data ================= */
+/* Phonics strings are chosen for how iOS text-to-speech reads them aloud,
+   not how they're spelled (e.g. bare "a" is read as the letter name "ay"). */
+const LETTERS = [
+  ['A','🍎','Apple','ah'],   ['B','🐝','Bee','buh'],   ['C','🐱','Cat','kuh'],
+  ['D','🐶','Dog','duh'],    ['E','🐘','Elephant','eh'],['F','🐸','Frog','fuh'],
+  ['G','🍇','Grapes','guh'], ['H','🐴','Horse','huh'], ['I','🍦','Ice cream','ih'],
+  ['J','🧃','Juice','juh'],  ['K','🪁','Kite','kuh'],  ['L','🦁','Lion','luh'],
+  ['M','🌙','Moon','muh'],   ['N','🥜','Nut','nuh'],   ['O','🐙','Octopus','aw'],
+  ['P','🐷','Pig','puh'],    ['Q','👑','Queen','kwuh'],['R','🌈','Rainbow','ruh'],
+  ['S','☀️','Sun','suh'],    ['T','🐯','Tiger','tuh'], ['U','☂️','Umbrella','uh'],
+  ['V','🎻','Violin','vuh'], ['W','🐳','Whale','wuh'], ['X','🩻','X-ray','kuss'],
+  ['Y','🪀','Yo-yo','yuh'],  ['Z','🦓','Zebra','zuh'],
+];
+const NUMBER_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+  'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+const COUNT_EMOJI = ['🍓','🐥','🎈','🌟','🍪','🐠','🌸','🚗','🦋','🍭'];
+const CHEERS = ['Yay! Great job!','Woohoo! You did it!','Amazing!','Super smart!','Hooray! Well done!'];
+const CHEER_EMOJI = ['🎉','🌟','🦄','🎈','💖','🏆'];
+const NQ_PROMPT = 'How many do you see? Tap them and count!';
+
+/* ================= speech ================= */
+let voice = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+  voice = vs.find(v => /Samantha|Karen|Female|Google US/i.test(v.name)) || vs[0] || null;
+}
+if ('speechSynthesis' in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speak(text, rate) {
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.rate = rate || 0.7;
+  u.pitch = 1.15;
+  /* iOS Safari drops an utterance queued in the same tick as cancel() —
+     only go async when something is actually playing, so the very first
+     tap-triggered speak stays inside the user-gesture window. */
+  if (speechSynthesis.speaking || speechSynthesis.pending) {
+    speechSynthesis.cancel();
+    setTimeout(() => speechSynthesis.speak(u), 60);
+  } else {
+    speechSynthesis.speak(u);
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) speechSynthesis.cancel(); });
+/* Safari ignores user-scalable=no; block pinch zoom so little fingers can't shrink the app */
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+/* ================= navigation & stars ================= */
+let stars = 0;
+try { stars = Number(localStorage.getItem('stars')) || 0; } catch (e) {}
+document.getElementById('starCount').textContent = stars;
+function addStar() {
+  stars++;
+  try { localStorage.setItem('stars', stars); } catch (e) {}
+  document.getElementById('starCount').textContent = stars;
+}
+function show(id, title) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('titleTxt').textContent = title;
+  document.getElementById('homeBtn').style.visibility = id === 'scr-home' ? 'hidden' : 'visible';
+}
+function goHome() {
+  speechSynthesis.cancel();
+  show('scr-home', 'ABC & 123 Fun!');
+}
+/* run fn only if the screen is still up — so auto-advance can't yank her
+   back into a quiz she already left */
+function later(screenId, fn, ms) {
+  setTimeout(() => {
+    if (document.getElementById(screenId).classList.contains('active')) fn();
+  }, ms);
+}
+
+/* ================= celebration ================= */
+function confettiBurst() {
+  const box = document.getElementById('confetti');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'confPiece';
+    p.textContent = ['🎉','⭐','💛','💙','💜','🌸'][i % 6];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (1.2 + Math.random() * 1.2) + 's';
+    p.style.animationDelay = (Math.random() * 0.4) + 's';
+    box.appendChild(p);
+    setTimeout(() => p.remove(), 3000);
+  }
+}
+function celebrate(saying) {
+  addStar();
+  confettiBurst();
+  const cheer = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+  const bubble = document.getElementById('cheerBubble');
+  bubble.textContent = CHEER_EMOJI[Math.floor(Math.random() * CHEER_EMOJI.length)] + ' ' + cheer.split('!')[0] + '!';
+  bubble.style.display = 'block';
+  setTimeout(() => bubble.style.display = 'none', 1400);
+  speak((saying ? saying + ' ' : '') + cheer, 0.9);
+}
+function encourage() {
+  speak(['Almost! Try again!','Oops! One more try!','So close! Try again!'][Math.floor(Math.random() * 3)], 0.9);
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* shared quiz answer row: locks all buttons on a correct tap (no star
+   farming, no double-scheduled next round), greys out wrong tries */
+function buildAnswers(rowId, options, correct, sayOnCorrect, next) {
+  const row = document.getElementById(rowId);
+  row.innerHTML = '';
+  options.forEach((v, i) => {
+    const b = document.createElement('button');
+    b.className = 'ansBtn a' + i;
+    b.textContent = v;
+    b.onclick = () => {
+      if (v === correct) {
+        row.querySelectorAll('button').forEach(x => x.disabled = true);
+        b.classList.add('right');
+        celebrate(sayOnCorrect);
+        next();
+      } else {
+        b.disabled = true;
+        b.classList.add('wrong');
+        encourage();
+      }
+    };
+    row.appendChild(b);
+  });
+}
+
+/* ================= LETTERS ================= */
+let li = 0;
+function openLetters() { show('scr-letters', 'Letters ABC'); renderLetter(); sayLetter(); }
+function renderLetter() {
+  const [L, emoji, word] = LETTERS[li];
+  const g = document.getElementById('letterGlyph');
+  g.textContent = L + ' ' + L.toLowerCase();
+  g.className = 'bigGlyph c' + (li % 6);
+  document.getElementById('letterEmoji').textContent = emoji;
+  document.getElementById('letterWord').textContent = word;
+}
+function sayLetter() {
+  /* lowercase for TTS — an isolated uppercase letter is read as "capital A" */
+  speak(LETTERS[li][0].toLowerCase() + '.', 0.6);
+}
+function sayLetterWord(e) {
+  e.stopPropagation();
+  speak(LETTERS[li][2] + '!', 0.6);
+}
+function stepLetter(d) { li = (li + d + 26) % 26; renderLetter(); sayLetter(); }
+
+/* ----- quiz: find the letter (by name, or by phonics sound) ----- */
+let lqMode = 'name', lqPromptText = '';
+/* answer buttons show upper or lower case letters — the Aa button toggles it */
+let lqCase = 'upper';
+try { if (localStorage.getItem('lqCase') === 'lower') lqCase = 'lower'; } catch (e) {}
+function lqGlyph(L) { return lqCase === 'lower' ? L.toLowerCase() : L; }
+function toggleLetterCase() {
+  lqCase = lqCase === 'lower' ? 'upper' : 'lower';
+  try { localStorage.setItem('lqCase', lqCase); } catch (e) {}
+  letterQuiz(lqMode);
+}
+function letterQuiz(mode) {
+  lqMode = mode === 'sound' ? 'sound' : 'name';
+  show('scr-letterquiz', lqMode === 'sound' ? 'Who says it? 🎯' : 'Find it! 🎯');
+  document.getElementById('lqCaseBtn').textContent = lqCase === 'lower' ? '🔡 abc' : '🔠 ABC';
+  const [target, , word, sound] = LETTERS[Math.floor(Math.random() * 26)];
+  const opts = new Set([target]);
+  while (opts.size < 3) opts.add(LETTERS[Math.floor(Math.random() * 26)][0]);
+  /* the on-screen prompt must never show the answer — she'd just shape-match.
+     The target only lives in the spoken audio; tap the prompt to hear it again. */
+  if (lqMode === 'sound') {
+    lqPromptText = 'Which letter says ' + sound + '? ' + sound + ', like ' + word + '!';
+    document.getElementById('lqPrompt').textContent = '🔊 Who says it?';
+  } else {
+    lqPromptText = 'Can you find the letter ' + target + '?';
+    document.getElementById('lqPrompt').textContent = '🔊 Find the letter!';
+  }
+  buildAnswers('lqAnswers', shuffle([...opts]).map(lqGlyph), lqGlyph(target),
+    lqMode === 'sound' ? target + ' says ' + sound + '!' : target.toLowerCase() + '!',
+    () => later('scr-letterquiz', () => letterQuiz(lqMode), 2200));
+  speak(lqPromptText);
+}
+
+/* ================= PHONICS ================= */
+let pi = 0;
+function openPhonics() { show('scr-phonics', 'Letter Sounds 🗣️'); renderPhonics(); sayPhonics(); }
+function renderPhonics() {
+  const [L, emoji, word, sound] = LETTERS[pi];
+  const g = document.getElementById('phGlyph');
+  g.textContent = L + ' ' + L.toLowerCase();
+  g.className = 'bigGlyph c' + (pi % 6);
+  document.getElementById('phEmoji').textContent = emoji;
+  document.getElementById('phWord').textContent = sound + '… ' + word + '!';
+}
+function sayPhonics() {
+  const [L, , word, sound] = LETTERS[pi];
+  /* "The letter A says, ah." — the lead-in words and period pauses keep the
+     short sound from blurring into the letter name */
+  speak('The letter ' + L + ' says, ' + sound + '. ' + sound + '. ' + word + '!', 0.6);
+}
+function stepPhonics(d) { pi = (pi + d + 26) % 26; renderPhonics(); sayPhonics(); }
+
+/* ================= NUMBERS ================= */
+/* tappable counting objects, five per row so quantities read like a counting frame */
+function buildCountRows(boxId, n, emoji, onCount) {
+  const box = document.getElementById(boxId);
+  box.innerHTML = '';
+  let row = null;
+  for (let k = 0; k < n; k++) {
+    if (k % 5 === 0) { row = document.createElement('div'); row.className = 'cRow'; box.appendChild(row); }
+    const s = document.createElement('span');
+    s.className = 'cobj';
+    s.textContent = emoji;
+    s.onclick = (e) => {
+      e.stopPropagation();
+      if (s.classList.contains('counted')) return;
+      s.classList.add('counted');
+      onCount();
+    };
+    row.appendChild(s);
+  }
+}
+
+let ni = 1, tapped = 0;
+function openNumbers() { show('scr-numbers', 'Numbers 123'); renderNumber(); sayNumber(); }
+function renderNumber() {
+  document.getElementById('numGlyph').textContent = ni;
+  document.getElementById('numGlyph').className = 'bigGlyph c' + (ni % 6);
+  document.getElementById('numWord').textContent = NUMBER_WORDS[ni];
+  document.getElementById('numHint').textContent = ni === 0 ? 'Zero means none at all!' : '👆 Tap each one to count!';
+  tapped = 0;
+  const emoji = COUNT_EMOJI[ni % COUNT_EMOJI.length];
+  buildCountRows('countObjs', ni, emoji, () => {
+    tapped++;
+    speak(String(tapped), 0.9);
+    if (tapped === ni) {
+      confettiBurst();
+      setTimeout(() => speak(NUMBER_WORDS[ni] + ' altogether! Great counting!', 0.9), 450);
+    }
+  });
+  if (ni === 0) document.getElementById('countObjs').innerHTML = '<span style="font-size:30px;color:#c9bde8">nothing here! zero!</span>';
+}
+function sayNumber() { speak(NUMBER_WORDS[ni] + '!'); }
+function stepNumber(d) { ni = (ni + d + 21) % 21; renderNumber(); sayNumber(); }
+
+/* ----- number quiz: how many? (objects are tappable to count) ----- */
+function numberQuiz() {
+  show('scr-numberquiz', 'How many? 🎯');
+  const n = 1 + Math.floor(Math.random() * 9);
+  const emoji = COUNT_EMOJI[Math.floor(Math.random() * COUNT_EMOJI.length)];
+  let nqTapped = 0;
+  buildCountRows('nqObjs', n, emoji, () => {
+    nqTapped++;
+    speak(String(nqTapped), 0.9);
+  });
+  const opts = new Set([n]);
+  while (opts.size < 3) opts.add(Math.max(0, n + Math.floor(Math.random() * 5) - 2));
+  buildAnswers('nqAnswers', shuffle([...opts]), n,
+    NUMBER_WORDS[n] + '!',
+    () => later('scr-numberquiz', numberQuiz, 2200));
+  speak(NQ_PROMPT);
+}
+
+/* ================= MATH ================= */
+let mathSpoken = '';
+function openMath() { show('scr-math', 'Fun Math 🧮'); mathProblem(); }
+function mathProblem() {
+  const emoji = COUNT_EMOJI[Math.floor(Math.random() * COUNT_EMOJI.length)];
+  const isAdd = Math.random() < 0.7;
+  let a, b, ans;
+  if (isAdd) {
+    a = 1 + Math.floor(Math.random() * 4);
+    b = 1 + Math.floor(Math.random() * 4);
+    ans = a + b;
+  } else {
+    a = 2 + Math.floor(Math.random() * 4);
+    b = 1 + Math.floor(Math.random() * (a - 1));
+    ans = a - b;
+  }
+  const box = document.getElementById('mathProblem');
+  box.innerHTML = '';
+  const g1 = document.createElement('span'); g1.className = 'objGroup'; g1.textContent = emoji.repeat(a);
+  const op = document.createElement('span'); op.textContent = isAdd ? '+' : '−';
+  const g2 = document.createElement('span'); g2.className = 'objGroup';
+  g2.textContent = emoji.repeat(b);
+  if (!isAdd) g2.style.opacity = '0.45';
+  const eq = document.createElement('span'); eq.textContent = '= ?';
+  box.append(g1, op, g2, eq);
+
+  mathSpoken = isAdd
+    ? `${NUMBER_WORDS[a]} plus ${NUMBER_WORDS[b]}. How many altogether?`
+    : `You have ${NUMBER_WORDS[a]}, and ${NUMBER_WORDS[b]} ${b === 1 ? 'goes' : 'go'} away. How many are left?`;
+
+  const opts = new Set([ans]);
+  while (opts.size < 3) opts.add(Math.max(0, ans + Math.floor(Math.random() * 5) - 2));
+  buildAnswers('mathAnswers', shuffle([...opts]), ans,
+    NUMBER_WORDS[ans] + '!',
+    () => later('scr-math', mathProblem, 2200));
+  speak(mathSpoken);
+}
+
+/* ================= TRACING ================= */
+const tcanvas = document.getElementById('traceCanvas');
+let traceType = 'letter', traceDone = false, tctx = null;
+let maskPts = [], covered = 0, drawing = false, lastPt = null, hue = 0;
+/* credit radius ≈ the visible 30px-wide stroke; success needs nearly the
+   whole glyph colored, with a little slack for tricky corners */
+const BRUSH_R = 18;
+const TRACE_DONE_AT = 0.85;
+
+function traceGlyph() { return traceType === 'letter' ? LETTERS[li][0] : String(ni); }
+function traceName() { return traceType === 'letter' ? LETTERS[li][0] : NUMBER_WORDS[ni]; }
+
+function openTrace(type) {
+  traceType = type;
+  show('scr-trace', 'Trace it! ✏️');
+  initTrace();
+  sayTraceGlyph();
+}
+function sayTraceGlyph() {
+  speak('Trace the ' + (traceType === 'letter' ? 'letter ' : 'number ') + traceName() + ' with your finger!');
+}
+function clearTrace() { initTrace(); }
+function stepTrace(d) {
+  if (traceType === 'letter') li = (li + d + 26) % 26;
+  else ni = (ni + d + 21) % 21;
+  initTrace();
+  sayTraceGlyph();
+}
+
+function initTrace() {
+  traceDone = false; covered = 0; hue = 0; drawing = false;
+  const stage = document.getElementById('stage');
+  const w = Math.round(Math.min(stage.clientWidth * 0.86, 560));
+  const h = Math.round(Math.min(stage.clientHeight * 0.62, 430));
+  const dpr = window.devicePixelRatio || 1;
+  tcanvas.style.width = w + 'px'; tcanvas.style.height = h + 'px';
+  tcanvas.width = w * dpr; tcanvas.height = h * dpr;
+  tctx = tcanvas.getContext('2d');
+  tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const g = traceGlyph();
+  let fs = h * 0.82;
+  const fontFor = s => '800 ' + s + 'px "Chalkboard SE", "Comic Sans MS", sans-serif';
+  tctx.font = fontFor(fs);
+  while (tctx.measureText(g).width > w * 0.8 && fs > 40) { fs *= 0.92; tctx.font = fontFor(fs); }
+  tctx.textAlign = 'center'; tctx.textBaseline = 'middle';
+  const cx = w / 2, cy = h / 2 + fs * 0.04;
+
+  tctx.clearRect(0, 0, w, h);
+  tctx.fillStyle = '#efe9fb';
+  tctx.fillText(g, cx, cy);
+  tctx.lineWidth = 3; tctx.strokeStyle = '#cbbcf0';
+  tctx.setLineDash([10, 8]);
+  tctx.strokeText(g, cx, cy);
+  tctx.setLineDash([]);
+
+  /* sample the glyph into coverage points (CSS-pixel resolution) */
+  const m = document.createElement('canvas');
+  m.width = w; m.height = h;
+  const mc = m.getContext('2d');
+  mc.font = tctx.font; mc.textAlign = 'center'; mc.textBaseline = 'middle';
+  mc.fillText(g, cx, cy);
+  const data = mc.getImageData(0, 0, w, h).data;
+  maskPts = [];
+  for (let y = 0; y < h; y += 6)
+    for (let x = 0; x < w; x += 6)
+      if (data[(y * w + x) * 4 + 3] > 128) maskPts.push({ x, y, hit: false });
+}
+
+function evPt(e) {
+  const r = tcanvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+function drawStroke(a, b) {
+  hue = (hue + Math.hypot(b.x - a.x, b.y - a.y) * 0.6) % 360;
+  tctx.strokeStyle = 'hsl(' + hue + ', 85%, 62%)';
+  tctx.lineWidth = 30; tctx.lineCap = 'round'; tctx.lineJoin = 'round';
+  tctx.beginPath(); tctx.moveTo(a.x, a.y); tctx.lineTo(b.x, b.y); tctx.stroke();
+}
+function markSegment(a, b) {
+  for (const p of maskPts) {
+    if (p.hit) continue;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy || 1;
+    let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const ex = a.x + t * dx - p.x, ey = a.y + t * dy - p.y;
+    if (ex * ex + ey * ey < BRUSH_R * BRUSH_R) { p.hit = true; covered++; }
+  }
+  if (!traceDone && maskPts.length && covered / maskPts.length > TRACE_DONE_AT) {
+    traceDone = true;
+    celebrate('You wrote ' + traceName() + '!');
+    later('scr-trace', () => stepTrace(1), 2600);
+  }
+}
+tcanvas.addEventListener('pointerdown', e => {
+  if (!e.isPrimary) return;
+  e.preventDefault();
+  tcanvas.setPointerCapture(e.pointerId);
+  drawing = true;
+  lastPt = evPt(e);
+  drawStroke(lastPt, { x: lastPt.x + 0.1, y: lastPt.y + 0.1 });
+  markSegment(lastPt, lastPt);
+});
+tcanvas.addEventListener('pointermove', e => {
+  if (!drawing || !e.isPrimary) return;
+  const p = evPt(e);
+  drawStroke(lastPt, p);
+  markSegment(lastPt, p);
+  lastPt = p;
+});
+['pointerup', 'pointercancel'].forEach(t => tcanvas.addEventListener(t, () => { drawing = false; }));
+window.addEventListener('resize', () => {
+  if (document.getElementById('scr-trace').classList.contains('active')) initTrace();
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
