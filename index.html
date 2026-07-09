@@ -199,6 +199,7 @@
         <button class="navBtn small" onclick="openTrace('number')">✏️ Trace</button>
         <button class="navBtn small countVoiceBtn" onclick="toggleCountVoice()">🔊 I count</button>
         <button class="navBtn small" onclick="numberQuiz()">🎯 Play!</button>
+        <button class="navBtn small" onclick="findNumberQuiz()">🔍 Find!</button>
         <button class="navBtn" onclick="stepNumber(1)">➡️</button>
       </div>
     </div>
@@ -213,6 +214,16 @@
       <button class="navBtn small" onclick="speak(NQ_PROMPT)">🔁 Hear again</button>
       <button class="navBtn small countVoiceBtn" onclick="toggleCountVoice()">🔊 I count</button>
       <button class="navBtn small" onclick="numberQuiz()">➡️ New one</button>
+    </div>
+  </div>
+
+  <!-- FIND-NUMBER QUIZ -->
+  <div class="screen" id="scr-findnumber">
+    <div class="problemRow" onclick="speak(fnPromptText)" style="cursor:pointer">🔊 Find the number!</div>
+    <div class="answerRow" id="fnAnswers"></div>
+    <div class="navRow">
+      <button class="navBtn small" onclick="speak(fnPromptText)">🔁 Hear again</button>
+      <button class="navBtn small" onclick="findNumberQuiz()">➡️ New one</button>
     </div>
   </div>
 
@@ -498,6 +509,21 @@ function numberQuiz() {
     NUMBER_WORDS[n] + '!',
     () => later('scr-numberquiz', numberQuiz, 2200));
   speak(NQ_PROMPT);
+}
+
+/* ----- quiz: find the number (same shape as the find-the-letter game) ----- */
+let fnPromptText = '';
+function findNumberQuiz() {
+  show('scr-findnumber', 'Find it! 🎯');
+  const target = Math.floor(Math.random() * 21);
+  const opts = new Set([target]);
+  while (opts.size < 3) opts.add(Math.floor(Math.random() * 21));
+  /* the prompt is spoken only, never shown — otherwise she'd just shape-match */
+  fnPromptText = 'Can you find the number ' + NUMBER_WORDS[target] + '?';
+  buildAnswers('fnAnswers', shuffle([...opts]), target,
+    NUMBER_WORDS[target] + '!',
+    () => later('scr-findnumber', findNumberQuiz, 2200));
+  speak(fnPromptText);
 }
 
 /* ================= MATH ================= */
