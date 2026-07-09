@@ -197,6 +197,7 @@
       <div class="navRow">
         <button class="navBtn" onclick="stepNumber(-1)">⬅️</button>
         <button class="navBtn small" onclick="openTrace('number')">✏️ Trace</button>
+        <button class="navBtn small countVoiceBtn" onclick="toggleCountVoice()">🔊 I count</button>
         <button class="navBtn small" onclick="numberQuiz()">🎯 Play!</button>
         <button class="navBtn" onclick="stepNumber(1)">➡️</button>
       </div>
@@ -210,6 +211,7 @@
     <div class="answerRow" id="nqAnswers"></div>
     <div class="navRow">
       <button class="navBtn small" onclick="speak(NQ_PROMPT)">🔁 Hear again</button>
+      <button class="navBtn small countVoiceBtn" onclick="toggleCountVoice()">🔊 I count</button>
       <button class="navBtn small" onclick="numberQuiz()">➡️ New one</button>
     </div>
   </div>
@@ -421,6 +423,23 @@ function letterQuiz() {
 }
 
 /* ================= NUMBERS ================= */
+/* the app counts each tap out loud, or stays quiet so kids count themselves —
+   toggled by the "I count / You count" button, shared by both number games */
+let countVoice = true;
+try { if (localStorage.getItem('countVoice') === 'off') countVoice = false; } catch (e) {}
+function updateCountVoiceBtns() {
+  document.querySelectorAll('.countVoiceBtn').forEach(b => {
+    b.textContent = countVoice ? '🔊 I count' : '🤫 You count';
+  });
+}
+function toggleCountVoice() {
+  countVoice = !countVoice;
+  try { localStorage.setItem('countVoice', countVoice ? 'on' : 'off'); } catch (e) {}
+  updateCountVoiceBtns();
+  speak(countVoice ? 'I will count with you!' : 'Now you count out loud!', 0.9);
+}
+updateCountVoiceBtns();
+
 /* tappable counting objects, five per row so quantities read like a counting frame */
 function buildCountRows(boxId, n, emoji, onCount) {
   const box = document.getElementById(boxId);
@@ -452,7 +471,7 @@ function renderNumber() {
   const emoji = COUNT_EMOJI[ni % COUNT_EMOJI.length];
   buildCountRows('countObjs', ni, emoji, () => {
     tapped++;
-    speak(String(tapped), 0.9);
+    if (countVoice) speak(String(tapped), 0.9);
     if (tapped === ni) {
       confettiBurst();
       setTimeout(() => speak(NUMBER_WORDS[ni] + ' altogether! Great counting!', 0.9), 450);
@@ -471,7 +490,7 @@ function numberQuiz() {
   let nqTapped = 0;
   buildCountRows('nqObjs', n, emoji, () => {
     nqTapped++;
-    speak(String(nqTapped), 0.9);
+    if (countVoice) speak(String(nqTapped), 0.9);
   });
   const opts = new Set([n]);
   while (opts.size < 3) opts.add(Math.max(0, n + Math.floor(Math.random() * 5) - 2));
