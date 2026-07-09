@@ -223,6 +223,7 @@
     <div class="answerRow" id="fnAnswers"></div>
     <div class="navRow">
       <button class="navBtn small" onclick="speak(fnPromptText)">🔁 Hear again</button>
+      <button class="navBtn small" id="fnRangeBtn" onclick="toggleFnRange()">🔢 0–10</button>
       <button class="navBtn small" onclick="findNumberQuiz()">➡️ New one</button>
     </div>
   </div>
@@ -513,11 +514,20 @@ function numberQuiz() {
 
 /* ----- quiz: find the number (same shape as the find-the-letter game) ----- */
 let fnPromptText = '';
+/* numbers come from 0–10 or 0–20 — the range button toggles it */
+let fnMax = 10;
+try { if (localStorage.getItem('fnMax') === '20') fnMax = 20; } catch (e) {}
+function toggleFnRange() {
+  fnMax = fnMax === 10 ? 20 : 10;
+  try { localStorage.setItem('fnMax', String(fnMax)); } catch (e) {}
+  findNumberQuiz();
+}
 function findNumberQuiz() {
   show('scr-findnumber', 'Find it! 🎯');
-  const target = Math.floor(Math.random() * 21);
+  document.getElementById('fnRangeBtn').textContent = '🔢 0–' + fnMax;
+  const target = Math.floor(Math.random() * (fnMax + 1));
   const opts = new Set([target]);
-  while (opts.size < 3) opts.add(Math.floor(Math.random() * 21));
+  while (opts.size < 3) opts.add(Math.floor(Math.random() * (fnMax + 1)));
   /* the prompt is spoken only, never shown — otherwise she'd just shape-match */
   fnPromptText = 'Can you find the number ' + NUMBER_WORDS[target] + '?';
   buildAnswers('fnAnswers', shuffle([...opts]), target,
